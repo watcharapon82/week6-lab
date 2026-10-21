@@ -86,4 +86,4 @@ func main() {
 
 	log.Println("MovieHub API ฟังอยู่ที่ :"+port, "ต้อนรับ", origins)
 	log.Fatal(http.ListenAndServe(":"+port, mw.Logging(mw.CORS(origins, mux))))
-}
+} 

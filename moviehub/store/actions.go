@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type WishlistItem struct {
 	Genre      *string   `json:"genre"`
 	Year       *int      `json:"year"`
 	Rating     *float64  `json:"rating"`
+	Poster     *string   `json:"poster"`
 	PosterPath *string   `json:"posterPath"`
 	Note       *string   `json:"note"`
 	AddedAt    time.Time `json:"addedAt"`
@@ -67,9 +69,24 @@ func (s *Store) ListMyWishlist(ctx context.Context, memberID int64) ([]WishlistI
 	var items []WishlistItem
 	for rows.Next() {
 		var it WishlistItem
-		if err := rows.Scan(&it.ID, &it.Title, &it.TitleTH, &it.Genre, &it.Year, &it.Rating, &it.PosterPath, &it.Note, &it.AddedAt); err != nil {
+		var rawPoster *string
+		if err := rows.Scan(&it.ID, &it.Title, &it.TitleTH, &it.Genre, &it.Year, &it.Rating, &rawPoster, &it.Note, &it.AddedAt); err != nil {
 			return nil, err
 		}
+
+		if rawPoster != nil && *rawPoster != "" {
+			p := *rawPoster
+			it.PosterPath = &p
+
+			// แปลงเป็น Full URL ของ TMDB หากเป็น relative path เริ่มต้นด้วย /
+			if strings.HasPrefix(p, "/") {
+				fullURL := "https://image.tmdb.org/t/p/w500" + p
+				it.Poster = &fullURL
+			} else {
+				it.Poster = &p
+			}
+		}
+
 		items = append(items, it)
 	}
 	if items == nil {
