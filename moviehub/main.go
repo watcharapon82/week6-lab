@@ -40,7 +40,6 @@ func main() {
 	tickets := &auth.Issuer{Secret: []byte(secret), TTL: time.Hour}
 	h := &handler.Handler{Store: &store.Store{Pool: pool}, Tickets: tickets}
 
-	// login = ต้องมีตั๋ว, admin = ต้องมีตั๋วและบทบาทเป็น admin (ตรวจตั๋วก่อนเสมอ ค่อยดูบทบาท)
 	login := func(next http.HandlerFunc) http.HandlerFunc { return mw.RequireLogin(tickets, next) }
 	admin := func(next http.HandlerFunc) http.HandlerFunc { return login(mw.RequireRole("admin", next)) }
 
@@ -51,12 +50,24 @@ func main() {
 	mux.HandleFunc("GET /api/me", login(h.Me))
 	mux.HandleFunc("GET /api/genres", h.Genres)
 
-	// หมวดภาพยนตร์
+	// หนัง
 	mux.HandleFunc("GET /api/movies", h.SearchMovies)
 	mux.HandleFunc("GET /api/movies/{id}", h.GetMovie)
-	mux.HandleFunc("GET /api/movies/{id}/reviews", h.ListReviews)
 
-	// หลังบ้าน: ทุกเส้นทางใต้ /api/admin ผ่าน admin(...) ไม่มีข้อยกเว้น
+	// รีวิว
+	mux.HandleFunc("GET /api/movies/{id}/reviews", h.ListReviews)
+	mux.HandleFunc("POST /api/movies/{id}/reviews", login(h.CreateReview))
+
+	// ให้คะแนน
+	mux.HandleFunc("POST /api/movies/{id}/vote", login(h.VoteMovie))
+
+	// รายการที่อยากดู (Wishlist)
+	mux.HandleFunc("POST /api/wishlist/{id}", login(h.AddToWishlist))
+	mux.HandleFunc("DELETE /api/wishlist/{id}", login(h.RemoveFromWishlist))
+	mux.HandleFunc("POST /api/movies/{id}/wishlist", login(h.AddToWishlist))
+	mux.HandleFunc("DELETE /api/movies/{id}/wishlist", login(h.RemoveFromWishlist))
+
+	// จัดการระบบ Admin
 	mux.HandleFunc("GET /api/admin/stats", admin(h.AdminStats))
 	mux.HandleFunc("GET /api/admin/members", admin(h.AdminMembers))
 	mux.HandleFunc("PUT /api/admin/members/{id}/role", admin(h.AdminSetRole))
