@@ -21,12 +21,12 @@ type Movie struct {
 func (s *Store) SearchMovies(ctx context.Context, q string) ([]Movie, error) {
 	rows, err := s.Pool.Query(ctx,
 		`SELECT m.id, m.title, m.title_th,
-		        (SELECT coalesce(g.name_th, g.name_en) FROM movie_genres mg
-		           JOIN genres g ON g.id = mg.genre_id
-		          WHERE mg.movie_id = m.id AND mg.position = 0),
-		        extract(year FROM m.release_date)::int,
-		        round(m.vote_average, 1)::float8,
-		        'https://image.tmdb.org/t/p/w500' || m.poster_path
+				(SELECT coalesce(g.name_th, g.name_en) FROM movie_genres mg
+				   JOIN genres g ON g.id = mg.genre_id
+				  WHERE mg.movie_id = m.id AND mg.position = 0),
+				extract(year FROM m.release_date)::int,
+				round(m.vote_average, 1)::float8,
+				'https://image.tmdb.org/t/p/w500' || m.poster_path
 		 FROM movies m
 		 WHERE lower(m.title) LIKE '%' || lower($1) || '%'
 		 ORDER BY m.popularity DESC`, q)
@@ -56,19 +56,14 @@ func (s *Store) GetMovie(ctx context.Context, id int64) (MovieDetail, error) {
 	var m MovieDetail
 	err := s.Pool.QueryRow(ctx,
 		`SELECT m.id, m.title, m.title_th,
-		        (SELECT coalesce(g.name_th, g.name_en) FROM movie_genres mg
-		           JOIN genres g ON g.id = mg.genre_id
-		          WHERE mg.movie_id = m.id AND mg.position = 0),
-		        extract(year FROM m.release_date)::int,
-		        round(m.vote_average, 1)::float8,
-		      
-
-
+				(SELECT coalesce(g.name_th, g.name_en) FROM movie_genres mg
+				   JOIN genres g ON g.id = mg.genre_id
+				  WHERE mg.movie_id = m.id AND mg.position = 0),
+				extract(year FROM m.release_date)::int,
+				round(m.vote_average, 1)::float8,
 				CASE WHEN m.poster_path LIKE 'http%' THEN m.poster_path
-                     ELSE 'https://image.tmdb.org/t/p/w500' || m.poster_path END
-
-
-		        coalesce(m.overview_th, m.overview)
+					 ELSE 'https://image.tmdb.org/t/p/w500' || m.poster_path END,
+				coalesce(m.overview_th, m.overview)
 		 FROM movies m
 		 WHERE m.id = $1`, id).
 		Scan(&m.ID, &m.Title, &m.TitleTh, &m.Genre, &m.Year, &m.Rating, &m.Poster, &m.Detail)
@@ -76,4 +71,4 @@ func (s *Store) GetMovie(ctx context.Context, id int64) (MovieDetail, error) {
 		return m, ErrNotFound
 	}
 	return m, err
-} 
+}
