@@ -58,14 +58,15 @@ func main() {
 	mux.HandleFunc("GET /api/movies/{id}/reviews", h.ListReviews)
 	mux.HandleFunc("POST /api/movies/{id}/reviews", login(h.CreateReview))
 
-	// ให้คะแนน
+	// ให้คะแนนโหวต (รองรับทั้ง PUT ตามสเปก และ POST กันเหนียว)
+	mux.HandleFunc("PUT /api/movies/{id}/vote", login(h.VoteMovie))
 	mux.HandleFunc("POST /api/movies/{id}/vote", login(h.VoteMovie))
+	mux.HandleFunc("DELETE /api/movies/{id}/vote", login(h.DeleteVote))
 
 	// รายการที่อยากดู (Wishlist)
-	mux.HandleFunc("POST /api/wishlist/{id}", login(h.AddToWishlist))
-	mux.HandleFunc("DELETE /api/wishlist/{id}", login(h.RemoveFromWishlist))
-	mux.HandleFunc("POST /api/movies/{id}/wishlist", login(h.AddToWishlist))
-	mux.HandleFunc("DELETE /api/movies/{id}/wishlist", login(h.RemoveFromWishlist))
+	mux.HandleFunc("GET /api/me/wishlist", login(h.GetMyWishlist))
+	mux.HandleFunc("PUT /api/me/wishlist/{movieId}", login(h.PutWishlist))
+	mux.HandleFunc("DELETE /api/me/wishlist/{movieId}", login(h.DeleteWishlist))
 
 	// จัดการระบบ Admin
 	mux.HandleFunc("GET /api/admin/stats", admin(h.AdminStats))

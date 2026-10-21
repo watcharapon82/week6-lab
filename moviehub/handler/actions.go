@@ -18,7 +18,11 @@ type reviewReq struct {
 	Text string `json:"text"`
 }
 
-// VoteMovie ให้คะแนนหนัง 1-10
+type wishlistReq struct {
+	Note *string `json:"note"`
+}
+
+// PUT /api/movies/{id}/vote
 func (h *Handler) VoteMovie(w http.ResponseWriter, r *http.Request) {
 	memberID, ok := mw.MemberID(r.Context())
 	if !ok {
@@ -48,7 +52,27 @@ func (h *Handler) VoteMovie(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
-// CreateReview โพสต์ข้อความรีวิว
+// DELETE /api/movies/{id}/vote
+func (h *Handler) DeleteVote(w http.ResponseWriter, r *http.Request) {
+	memberID, ok := mw.MemberID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "NO_TOKEN", "กรุณาเข้าสู่ระบบก่อน")
+		return
+	}
+	movieID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_ID", "รหัสหนังไม่ถูกต้อง")
+		return
+	}
+
+	if err := h.Store.DeleteVote(r.Context(), memberID, movieID); err != nil {
+		internal(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// POST /api/movies/{id}/reviews
 func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	memberID, ok := mw.MemberID(r.Context())
 	if !ok {
@@ -79,42 +103,61 @@ func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]any{"ok": true})
 }
 
-// AddToWishlist เพิ่มหนังเข้า wishlist
-func (h *Handler) AddToWishlist(w http.ResponseWriter, r *http.Request) {
+// GET /api/me/wishlist
+func (h *Handler) GetMyWishlist(w http.ResponseWriter, r *http.Request) {
 	memberID, ok := mw.MemberID(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "NO_TOKEN", "กรุณาเข้าสู่ระบบก่อน")
 		return
 	}
-	movieID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "BAD_ID", "รหัสหนังไม่ถูกต้อง")
-		return
-	}
 
-	if err := h.Store.AddWishlist(r.Context(), memberID, movieID); err != nil {
+	items, err := h.Store.ListMyWishlist(r.Context(), memberID)
+	if err != nil {
 		internal(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "wishlisted": true})
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
 }
 
-// RemoveFromWishlist ลบหนังออกจาก wishlist
-func (h *Handler) RemoveFromWishlist(w http.ResponseWriter, r *http.Request) {
+// PUT /api/me/wishlist/{movieId}
+func (h *Handler) PutWishlist(w http.ResponseWriter, r *http.Request) {
 	memberID, ok := mw.MemberID(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "NO_TOKEN", "กรุณาเข้าสู่ระบบก่อน")
 		return
 	}
-	movieID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	movieID, err := strconv.ParseInt(r.PathValue("movieId"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "BAD_ID", "รหัสหนังไม่ถูกต้อง")
 		return
 	}
 
-	if err := h.Store.RemoveWishlist(r.Context(), memberID, movieID); err != nil {
+	var req wishlistReq
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	if err := h.Store.PutWishlist(r.Context(), memberID, movieID, req.Note); err != nil {
 		internal(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "wishlisted": false})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// DELETE /api/me/wishlist/{movieId}
+func (h *Handler) DeleteWishlist(w http.ResponseWriter, r *http.Request) {
+	memberID, ok := mw.MemberID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "NO_TOKEN", "กรุณาเข้าสู่ระบบก่อน")
+		return
+	}
+	movieID, err := strconv.ParseInt(r.PathValue("movieId"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_ID", "รหัสหนังไม่ถูกต้อง")
+		return
+	}
+
+	if err := h.Store.DeleteWishlist(r.Context(), memberID, movieID); err != nil {
+		internal(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
