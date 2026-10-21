@@ -54,18 +54,7 @@ func main() {
 	// หมวดภาพยนตร์
 	mux.HandleFunc("GET /api/movies", h.SearchMovies)
 	mux.HandleFunc("GET /api/movies/{id}", h.GetMovie)
-
-	// หมวดรีวิวหนัง (ดูรีวิวไม่ต้องล็อกอิน / ส่งรีวิวต้องล็อกอิน)
 	mux.HandleFunc("GET /api/movies/{id}/reviews", h.ListReviews)
-	mux.HandleFunc("POST /api/movies/{id}/reviews", login(h.CreateReview))
-
-	// ให้คะแนนหนัง (Vote)
-	mux.HandleFunc("POST /api/movies/{id}/vote", login(h.VoteMovie))
-
-	// รายการที่อยากดู (Wishlist)
-	mux.HandleFunc("GET /api/me/wishlist", login(h.ListWishlist))
-	mux.HandleFunc("POST /api/me/wishlist/{id}", login(h.AddToWishlist))
-	mux.HandleFunc("DELETE /api/me/wishlist/{id}", login(h.RemoveFromWishlist))
 
 	// หลังบ้าน: ทุกเส้นทางใต้ /api/admin ผ่าน admin(...) ไม่มีข้อยกเว้น
 	mux.HandleFunc("GET /api/admin/stats", admin(h.AdminStats))
@@ -78,7 +67,7 @@ func main() {
 
 	origins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 
-	port := os.Getenv("PORT") // Render ส่งมาให้ ในเครื่องไม่มีก็ใช้ 8080
+	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
